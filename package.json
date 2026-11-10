@@ -1,0 +1,20 @@
+{
+  "name": "knowledgekninja",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "predev": "npm run generate",
+    "dev": "astro dev",
+    "start": "npm run dev",
+    "prebuild": "npm run generate",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "generate": "node scripts/generate-from-taxonomy.mjs"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.10",
+    "astro": "^7.3.6",
+    "sharp": "^0.35.3"
+  }
+}

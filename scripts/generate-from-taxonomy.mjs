@@ -93,9 +93,24 @@ for (const p of pages) {
 if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
 
 const kidsOf = (address) => pages.filter((c) => c.parent === address).sort((a, b) => cmp(a.address, b.address));
+// Prefix content links with BASE (e.g. /knowledgekninja-site) so they work
+// on GitHub Pages project URLs. Sidebar links stay root-relative; Starlight
+// adds the base itself. Default BASE "/" leaves links unchanged for local dev.
+function siteBase() {
+	const raw = process.env.BASE ?? '/';
+	if (!raw || raw === '/') return '';
+	return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+}
+function withBase(path) {
+	const pth = path.startsWith('/') ? path : `/${path}`;
+	return `${siteBase()}${pth}`;
+}
+function prefixMarkdownHrefs(md) {
+	return md.replace(/\]\((\/[^)]+)\)/g, (_, href) => `](${withBase(href)})`);
+}
 const link = (addr) => {
 	const p = byAddr.get(addr);
-	return `[${p.address} ${p.label}](/${p.address}/)`;
+	return `[${p.address} ${p.label}](${withBase(`/${p.address}/`)})`;
 };
 
 function yamlScalar(value) {
@@ -144,7 +159,7 @@ function topicPage(p) {
 
 fs.mkdirSync(docsDir, { recursive: true });
 for (const existing of fs.readdirSync(docsDir)) {
-	if (existing === 'index.md') continue;
+	if (existing === 'index.md' || existing === 'index.mdx') continue;
 	if (/\.mdx?$/.test(existing)) fs.unlinkSync(path.join(docsDir, existing));
 }
 for (const p of pages) {
@@ -183,7 +198,7 @@ const line = (p, depth) => {
 		p.status === 'deprecated' ? 'Deprecated' : null,
 	].filter(Boolean);
 	const kids = kidsOf(p.address);
-	return [`${'  '.repeat(depth)}- [${p.address} ${p.label}](/${p.address}/)${tags.length ? ` (${tags.join(', ')})` : ''}`, ...kids.map((k) => line(k, depth + 1))].join('\n');
+	return [`${'  '.repeat(depth)}- [${p.address} ${p.label}](${withBase(`/${p.address}/`)})${tags.length ? ` (${tags.join(', ')})` : ''}`, ...kids.map((k) => line(k, depth + 1))].join('\n');
 };
 const tree = tops.map((t) => line(t, 0)).join('\n');
 const template = fs.readFileSync(templateFile, 'utf8');
@@ -191,7 +206,10 @@ if (!template.includes('<!-- tree:start -->') || !template.includes('<!-- tree:e
 	console.error('taxonomy template is missing tree:start / tree:end markers');
 	process.exit(1);
 }
-const taxonomyPage = template.replace(/<!-- tree:start -->[\s\S]*<!-- tree:end -->/, `<!-- tree:start -->\n${tree}\n<!-- tree:end -->`);
+const taxonomyPage = prefixMarkdownHrefs(template).replace(
+	/<!-- tree:start -->[\s\S]*<!-- tree:end -->/,
+	`<!-- tree:start -->\n${tree}\n<!-- tree:end -->`,
+);
 fs.writeFileSync(path.join(docsDir, 'taxonomy.md'), taxonomyPage);
 
 console.log(`generate: ${tops.length} top-level, ${pages.length} records -> docs, sidebar, taxonomy tree`);

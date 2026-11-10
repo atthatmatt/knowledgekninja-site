@@ -21,5 +21,7 @@ pnpm-debug.log*
 
 # generated from the kk-taxonomy submodule at build time
 src/content/docs/*.md
+src/content/docs/*.mdx
 !src/content/docs/index.md
+!src/content/docs/index.mdx
 src/sidebar.generated.mjs

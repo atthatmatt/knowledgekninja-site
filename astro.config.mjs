@@ -20,6 +20,9 @@ export default defineConfig({
 			description: 'A taxonomy of AI knowledge-base concepts.',
 			sidebar,
 			customCss: ['./src/styles/custom.css'],
+			components: {
+				PageTitle: './src/components/PageTitle.astro',
+			},
 		}),
 	],
 });

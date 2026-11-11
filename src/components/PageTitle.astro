@@ -1,0 +1,124 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+
+const data = Astro.locals.starlightRoute.entry.data;
+const address = typeof data.address === 'string' ? data.address : undefined;
+---
+
+<div class="kk-title-block">
+	<Default />
+	{
+		address && (
+			<p class="kk-address-line">
+				<code class="kk-address">{address}</code>
+				<button
+					type="button"
+					class="kk-copy-address"
+					data-address={address}
+					aria-label="Copy address"
+				>
+					<svg
+						class="kk-copy-icon"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="1.75"
+						aria-hidden="true"
+					>
+						<rect x="8" y="8" width="12" height="12" rx="2"></rect>
+						<path d="M8 16H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"></path>
+					</svg>
+					<svg
+						class="kk-copied-icon"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="1.75"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="m5 12.5 5 5 9-10"
+						></path>
+					</svg>
+					<span class="kk-copy-feedback" aria-live="polite"></span>
+				</button>
+			</p>
+		)
+	}
+</div>
+
+<script>
+	const FEEDBACK_MS = 1500;
+
+	function fallbackCopy(text: string) {
+		const ta = document.createElement('textarea');
+		ta.value = text;
+		ta.setAttribute('readonly', '');
+		ta.setAttribute('aria-hidden', 'true');
+		ta.style.cssText =
+			'position:fixed;top:0;left:0;width:2em;height:2em;padding:0;border:0;outline:none;box-shadow:none;background:transparent;opacity:0;';
+		document.body.appendChild(ta);
+		ta.focus();
+		ta.select();
+		ta.setSelectionRange(0, text.length);
+		const selection = window.getSelection();
+		if (selection && ta.firstChild) {
+			const range = document.createRange();
+			range.selectNodeContents(ta);
+			selection.removeAllRanges();
+			selection.addRange(range);
+		}
+		const ok = document.execCommand('copy');
+		document.body.removeChild(ta);
+		if (!ok) throw new Error('Copy failed');
+	}
+
+	async function copyText(text: string) {
+		if (navigator.clipboard?.writeText) {
+			try {
+				await navigator.clipboard.writeText(text);
+				return;
+			} catch {
+				// Fall through to the execCommand path when the Clipboard API is blocked.
+			}
+		}
+		fallbackCopy(text);
+	}
+
+	function resetButton(button: HTMLButtonElement) {
+		button.classList.remove('is-copied');
+		button.setAttribute('aria-label', 'Copy address');
+		const feedback = button.querySelector('.kk-copy-feedback');
+		if (feedback) feedback.textContent = '';
+	}
+
+	function markCopied(button: HTMLButtonElement) {
+		button.classList.add('is-copied');
+		button.setAttribute('aria-label', 'Copied');
+		const feedback = button.querySelector('.kk-copy-feedback');
+		if (feedback) feedback.textContent = 'Copied';
+		window.setTimeout(() => resetButton(button), FEEDBACK_MS);
+	}
+
+	document.addEventListener('click', async (event) => {
+		const target = event.target;
+		if (!(target instanceof Element)) return;
+		const button = target.closest('button.kk-copy-address');
+		if (!(button instanceof HTMLButtonElement)) return;
+		const text = button.getAttribute('data-address');
+		if (!text) return;
+		try {
+			await copyText(text);
+			markCopied(button);
+		} catch {
+			button.setAttribute('aria-label', 'Copy failed');
+			const feedback = button.querySelector('.kk-copy-feedback');
+			if (feedback) feedback.textContent = 'Copy failed';
+			window.setTimeout(() => resetButton(button), FEEDBACK_MS);
+		}
+	});
+</script>

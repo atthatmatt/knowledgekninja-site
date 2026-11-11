@@ -42,8 +42,9 @@ jobs:
           (umask 177; printf '%s\n' "$TAXONOMY_DEPLOY_KEY" > "$HOME/.ssh/taxonomy_deploy")
           chmod 600 "$HOME/.ssh/taxonomy_deploy"
           export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/taxonomy_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
-          git config --local url."git@github.com:atthatmatt/kk-taxonomy.git".insteadOf "https://github.com/atthatmatt/kk-taxonomy.git"
-          git submodule update --init --recursive
+          git submodule init
+          git config --local submodule.taxonomy.url git@github.com:atthatmatt/kk-taxonomy.git
+          git submodule update --recursive
           rm -f "$HOME/.ssh/taxonomy_deploy"
           test -d taxonomy/records
 

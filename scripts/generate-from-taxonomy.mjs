@@ -110,7 +110,7 @@ function prefixMarkdownHrefs(md) {
 }
 const link = (addr) => {
 	const p = byAddr.get(addr);
-	return `[${p.address} ${p.label}](${withBase(`/${p.address}/`)})`;
+	return `[${p.label}](${withBase(`/${p.address}/`)}) \`${p.address}\``;
 };
 
 function yamlScalar(value) {
@@ -121,7 +121,7 @@ function topicPage(p) {
 	const proposed = p.status === 'proposed';
 	const fm = [
 		'---',
-		`title: ${yamlScalar(`${p.address} ${p.label}`)}`,
+		`title: ${yamlScalar(p.label)}`,
 		`description: ${yamlScalar(p.scope)}`,
 		`address: ${yamlScalar(p.address)}`,
 		`slug: ${yamlScalar(p.address)}`,
@@ -135,12 +135,14 @@ function topicPage(p) {
 		'',
 	].join('\n');
 
-	const bits = [`**Address:** \`${p.address}\``];
+	const bits = [];
 	if (p.core) bits.push('**Core**');
 	if (proposed) bits.push('**Proposed**');
 	if (p.status === 'deprecated') bits.push('**Deprecated**');
 	if (p.parent) bits.push(`**Parent:** ${link(p.parent)}`);
-	const parts = [bits.join(' · '), '', `**Scope:** ${p.scope}`];
+	const parts = [];
+	if (bits.length) parts.push(bits.join(' · '), '');
+	parts.push(`**Scope:** ${p.scope}`);
 	if (p.status === 'deprecated' && p.moved_to) {
 		parts.push('', `**Moved to:** ${link(p.moved_to)}`);
 	}
@@ -166,19 +168,25 @@ for (const p of pages) {
 	fs.writeFileSync(path.join(docsDir, `${p.address}.md`), topicPage(p));
 }
 
+function addressBadge(p) {
+	const variant =
+		p.status === 'proposed' ? 'caution' : p.status === 'deprecated' ? 'danger' : 'default';
+	return { text: p.address, variant, class: 'kk-address-badge' };
+}
+
 const item = (p) => ({
-	label: `${p.address} ${p.label}`,
+	label: p.label,
 	link: `/${p.address}/`,
-	...(p.status === 'proposed' ? { badge: { text: 'proposed', variant: 'caution' } } : {}),
-	...(p.status === 'deprecated' ? { badge: { text: 'deprecated', variant: 'danger' } } : {}),
+	badge: addressBadge(p),
 });
 
 function node(p) {
 	const kids = kidsOf(p.address);
 	if (!kids.length) return item(p);
 	return {
-		label: `${p.address} ${p.label}`,
+		label: p.label,
 		collapsed: true,
+		badge: addressBadge(p),
 		items: [item(p), ...kids.map(node)],
 	};
 }
@@ -198,7 +206,9 @@ const line = (p, depth) => {
 		p.status === 'deprecated' ? 'Deprecated' : null,
 	].filter(Boolean);
 	const kids = kidsOf(p.address);
-	return [`${'  '.repeat(depth)}- [${p.address} ${p.label}](${withBase(`/${p.address}/`)})${tags.length ? ` (${tags.join(', ')})` : ''}`, ...kids.map((k) => line(k, depth + 1))].join('\n');
+	const tagsText = tags.length ? ` (${tags.join(', ')})` : '';
+	const meta = `<span class="kk-item-meta"><code>${p.address}</code>${tagsText}</span>`;
+	return [`${'  '.repeat(depth)}- [${p.label}](${withBase(`/${p.address}/`)}) ${meta}`, ...kids.map((k) => line(k, depth + 1))].join('\n');
 };
 const tree = tops.map((t) => line(t, 0)).join('\n');
 const template = fs.readFileSync(templateFile, 'utf8');
